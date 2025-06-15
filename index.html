@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shareable Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            margin: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8fafc;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+        }
+
+        .sidebar-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .notes-controls {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .new-note-btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .new-note-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .note-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .note-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .note-item.active {
+            background: linear-gradient(135deg, #ddd6fe, #e0e7ff);
+            border-color: #8b5cf6;
+        }
+
+        .note-item.pinned {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+        }
+
+        .note-item.pinned.active {
+            background: linear-gradient(135deg, #fed7aa, #fdba74);
+        }
+
+        .note-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .note-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .note-action-btn {
+            background: none;
+            border: none;
+            padding: 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+
+        .note-action-btn:hover {
+            opacity: 1;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .pin-icon {
+            color: #f59e0b;
+            font-size: 12px;
+        }
+
+        .delete-icon {
+            color: #ef4444;
+            font-size: 12px;
+        }
+
+        .note-preview {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.4;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .editor-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fafafa;
+        }
+
+        .note-title-input {
+            width: 100%;
+            border: none;
+            background: none;
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            outline: none;
+            padding: 8px 0;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .toolbar-btn {
+            background: none;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: #475569;
+        }
+
+        .toolbar-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .toolbar-btn.active {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .toolbar-select {
+            border: none;
+            background: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .editor-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .rich-editor {
+            min-height: 400px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+            outline: none;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .rich-editor:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #fef08a, #facc15);
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: help;
+            position: relative;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 5px;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1e293b;
+        }
+
+        .highlight:hover .tooltip {
+            opacity: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #334155;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                margin: 10px;
+                border-radius: 10px;
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 50vh;
+                border-right: none;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            
+            .main-content {
+                height: 50vh;
+            }
+            
+            .toolbar {
+                gap: 4px;
+            }
+            
+            .toolbar-group {
+                gap: 2px;
+            }
+            
+            .toolbar-btn {
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                margin: 5px;
+                border-radius: 8px;
+            }
+            
+            .sidebar-header h1 {
+                font-size: 20px;
+            }
+            
+            .note-title-input {
+                font-size: 20px;
+            }
+            
+            .rich-editor {
+                padding: 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h1>📝 Notes</h1>
+                <p>Organize your thoughts</p>
+            </div>
+            
+            <div class="notes-controls">
+                <button class="new-note-btn" onclick="createNewNote()">
+                    ✨ New Note
+                </button>
+            </div>
+            
+            <div class="notes-list" id="notesList">
+                <div class="empty-state">
+                    <h2>No notes yet</h2>
+                    <p>Create your first note to get started!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="editor-header" id="editorHeader" style="display: none;">
+                <input type="text" class="note-title-input" id="noteTitleInput" placeholder="Note title..." onkeyup="updateNoteTitle()">
+                
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" onclick="formatText('bold')" title="Bold">
+                            <strong>B</strong>
+                        </button>
+                        <button class="toolbar-btn" onclick="formatText('italic')" title="Italic">
+                            <em>I</em>
+                        </button>
+                        <button class="toolbar-btn" onclick="formatText('underline')" title="Underline">
+                            <u>U</u>
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <button class="toolbar-btn" onclick="formatText('justifyLeft')" title="Align Left">
+                            ⬅️
+                        </button>
+                        <button class="toolbar-btn" onclick="formatText('justifyCenter')" title="Align Center">
+                            ⬆️
+                        </button>
+                        <button class="toolbar-btn" onclick="formatText('justifyRight')" title="Align Right">
+                            ➡️
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <select class="toolbar-select" onchange="changeFontSize(this.value)">
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px" selected>16px</option>
+                            <option value="18px">18px</option>
+                            <option value="20px">20px</option>
+                            <option value="24px">24px</option>
+                            <option value="32px">32px</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="editor-container">
+                <div class="rich-editor" id="richEditor" contenteditable="true" style="display: none;" oninput="updateNoteContent()" onkeyup="highlightTerms()"></div>
+                
+                <div class="empty-state" id="emptyState">
+                    <h2>Welcome to Notes! 🚀</h2>
+                    <p>Select a note from the sidebar or create a new one to start writing.<br>
+                    Your notes will automatically highlight key terms with explanations!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App state
+        let notes = [];
+        let currentNoteId = null;
+        let nextId = 1;
+
+        // Glossary for auto-highlighting
+        const glossary = {
+            'javascript': 'A programming language commonly used for web development',
+            'html': 'HyperText Markup Language - the standard markup language for web pages',
+            'css': 'Cascading Style Sheets - used for styling web pages',
+            'api': 'Application Programming Interface - a set of protocols for building software',
+            'database': 'An organized collection of structured information or data',
+            'algorithm': 'A step-by-step procedure for solving a problem',
+            'framework': 'A platform for developing software applications',
+            'responsive': 'Design approach that makes web pages render well on various devices',
+            'frontend': 'The client-side part of a web application that users interact with',
+            'backend': 'The server-side part of a web application that handles data processing',
+            'debugging': 'The process of finding and fixing errors in code',
+            'repository': 'A central location where code and files are stored and managed',
+            'version control': 'A system that tracks changes to files over time',
+            'deployment': 'The process of making software available for use',
+            'optimization': 'The process of making something as effective as possible'
+        };
+
+        // Initialize app
+        function init() {
+            loadNotes();
+            renderNotesList();
+        }
+
+        // Create new note
+        function createNewNote() {
+            const newNote = {
+                id: nextId++,
+                title: 'Untitled Note',
+                content: '',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                pinned: false
+            };
+
+            notes.unshift(newNote);
+            saveNotes();
+            selectNote(newNote.id);
+            renderNotesList();
+            
+            // Focus on title input
+            setTimeout(() => {
+                document.getElementById('noteTitleInput').focus();
+                document.getElementById('noteTitleInput').select();
+            }, 100);
+        }
+
+        // Select note
+        function selectNote(noteId) {
+            currentNoteId = noteId;
+            const note = notes.find(n => n.id === noteId);
+            
+            if (note) {
+                document.getElementById('noteTitleInput').value = note.title;
+                document.getElementById('richEditor').innerHTML = note.content;
+                
+                // Show editor
+                document.getElementById('editorHeader').style.display = 'block';
+                document.getElementById('richEditor').style.display = 'block';
+                document.getElementById('emptyState').style.display = 'none';
+                
+                highlightTerms();
+            }
+            
+            renderNotesList();
+        }
+
+        // Update note title
+        function updateNoteTitle() {
+            if (currentNoteId) {
+                const note = notes.find(n => n.id === currentNoteId);
+                if (note) {
+                    note.title = document.getElementById('noteTitleInput').value || 'Untitled Note';
+                    note.updatedAt = new Date();
+                    saveNotes();
+                    renderNotesList();
+                }
+            }
+        }
+
+        // Update note content
+        function updateNoteContent() {
+            if (currentNoteId) {
+                const note = notes.find(n => n.id === currentNoteId);
+                if (note) {
+                    note.content = document.getElementById('richEditor').innerHTML;
+                    note.updatedAt = new Date();
+                    saveNotes();
+                    renderNotesList();
+                }
+            }
+        }
+
+        // Toggle pin note
+        function togglePin(noteId, event) {
+            event.stopPropagation();
+            const note = notes.find(n => n.id === noteId);
+            if (note) {
+                note.pinned = !note.pinned;
+                note.updatedAt = new Date();
+                saveNotes();
+                renderNotesList();
+            }
+        }
+
+        // Delete note
+        function deleteNote(noteId, event) {
+            event.stopPropagation();
+            if (confirm('Are you sure you want to delete this note?')) {
+                notes = notes.filter(n => n.id !== noteId);
+                
+                if (currentNoteId === noteId) {
+                    currentNoteId = null;
+                    document.getElementById('editorHeader').style.display = 'none';
+                    document.getElementById('richEditor').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+                
+                saveNotes();
+                renderNotesList();
+            }
+        }
+
+        // Format text
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            document.getElementById('richEditor').focus();
+            updateNoteContent();
+        }
+
+        // Change font size
+        function changeFontSize(size) {
+            document.execCommand('fontSize', false, '7');
+            const fontElements = document.querySelectorAll('font[size="7"]');
+            fontElements.forEach(el => {
+                el.removeAttribute('size');
+                el.style.fontSize = size;
+            });
+            document.getElementById('richEditor').focus();
+            updateNoteContent();
+        }
+
+        // Highlight key terms
+        function highlightTerms() {
+            const editor = document.getElementById('richEditor');
+            let content = editor.innerHTML;
+            
+            // Remove existing highlights to avoid nested highlighting
+            content = content.replace(/<span class="highlight"[^>]*>([^<]+)<\/span>/gi, '$1');
+            
+            // Highlight terms from glossary
+            Object.keys(glossary).forEach(term => {
+                const regex = new RegExp(`\\b(${term})\\b`, 'gi');
+                content = content.replace(regex, (match) => {
+                    return `<span class="highlight" onmouseover="showTooltip(event, '${glossary[term.toLowerCase()]}')" onmouseout="hideTooltip(event)">${match}</span>`;
+                });
+            });
+            
+            if (content !== editor.innerHTML) {
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const startOffset = range.startOffset;
+                
+                editor.innerHTML = content;
+                
+                // Restore cursor position
+                try {
+                    const newRange = document.createRange();
+                    newRange.setStart(editor.childNodes[0] || editor, Math.min(startOffset, (editor.textContent || '').length));
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                } catch (e) {
+                    // Ignore cursor positioning errors
+                }
+            }
+        }
+
+        // Show tooltip
+        function showTooltip(event, text) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = text;
+            tooltip.style.opacity = '1';
+            event.target.appendChild(tooltip);
+        }
+
+        // Hide tooltip
+        function hideTooltip(event) {
+            const tooltip = event.target.querySelector('.tooltip');
+            if (tooltip) {
+                tooltip.remove();
+            }
+        }
+
+        // Render notes list
+        function renderNotesList() {
+            const notesList = document.getElementById('notesList');
+            
+            if (notes.length === 0) {
+                notesList.innerHTML = `
+                    <div class="empty-state">
+                        <h2>No notes yet</h2>
+                        <p>Create your first note to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort notes: pinned first, then by updated date
+            const sortedNotes = [...notes].sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return new Date(b.updatedAt) - new Date(a.updatedAt);
+            });
+
+            notesList.innerHTML = sortedNotes.map(note => {
+                const preview = note.content.replace(/<[^>]*>/g, '').substring(0, 60);
+                const isActive = currentNoteId === note.id;
+                const isPinned = note.pinned;
+                
+                return `
+                    <div class="note-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}" onclick="selectNote(${note.id})">
+                        <div class="note-item-header">
+                            <div class="note-title">${note.title}</div>
+                            <div class="note-actions">
+                                <button class="note-action-btn" onclick="togglePin(${note.id}, event)" title="${isPinned ? 'Unpin' : 'Pin'} note">
+                                    <span class="pin-icon">${isPinned ? '📌' : '📍'}</span>
+                                </button>
+                                <button class="note-action-btn" onclick="deleteNote(${note.id}, event)" title="Delete note">
+                                    <span class="delete-icon">🗑️</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="note-preview">${preview}${preview.length >= 60 ? '...' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Save notes to memory (since localStorage is not supported)
+        function saveNotes() {
+            // In a real application, this would save to localStorage or a backend
+            // For this environment, notes are kept in memory during the session
+        }
+
+        // Load notes from memory
+        function loadNotes() {
+            // In a real application, this would load from localStorage or a backend
+            // For demonstration, we'll start with empty notes array
+            notes = [];
+        }
+
+        // Initialize app when page loads
+        init();
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'n':
+                        e.preventDefault();
+                        createNewNote();
+                        break;
+                    case 'b':
+                        if (document.getElementById('richEditor').contains(document.activeElement)) {
+                            e.preventDefault();
+                            formatText('bold');
+                        }
+                        break;
+                    case 'i':
+                        if (document.getElementById('richEditor').contains(document.activeElement)) {
+                            e.preventDefault();
+                            formatText('italic');
+                        }
+                        break;
+                    case 'u':
+                        if (document.getElementById('richEditor').contains(document.activeElement)) {
+                            e.preventDefault();
+                            formatText('underline');
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Handle responsive design
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                // Mobile optimizations can be added here
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+    </script>
+</body>
+</html>
